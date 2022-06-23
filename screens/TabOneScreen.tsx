@@ -1,17 +1,17 @@
 import React from 'react';
 import { StyleSheet, Text, View, Button, TouchableOpacity, FlatList, FlatListProps, Dimensions, Image, NativeScrollEvent, NativeSyntheticEvent, Animated, ViewToken } from 'react-native';
 
-import * as FileSystem from 'expo-file-system';
-
 import Slider from '@react-native-community/slider';
-
-import { Audio, AVPlaybackSource, AVPlaybackStatus, AVPlaybackStatusSuccess, InterruptionModeAndroid, InterruptionModeIOS  } from 'expo-av';
 
 import { RootTabScreenProps } from '../types';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useDebounce } from '../hooks/useDebounce';
 import { useFocusEffect } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
+import PlayerContext from '../contexts/player';
+import { fomatedTime } from '../helpers';
+import MusicPlayList from '../components/MusicPlayList';
+import PlayingController from '../components/PlayingController';
 
 const { width, height } = Dimensions.get('screen')
 
@@ -39,162 +39,33 @@ const data = [
 
 
 export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'>) {
-  const [playBackStatus, setPlayBackStatus] = React.useState<AVPlaybackStatusSuccess>({} as AVPlaybackStatusSuccess)
-  const [sound, setSound] = React.useState<Audio.Sound>();
-
   const [index, setIndex] = React.useState(0)
 
-  const position = useDebounce(playBackStatus.positionMillis, 50)
+  const { sound, position, playBackStatus, handlePlayOrStop, handlePositionMillis, loadAndPlay, loading } = React.useContext(PlayerContext)
 
   React.useEffect(() => {
-    // FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'all_app').then(response => {
-    //   console.log({ response }); 
-    // })
-  }, [])
-
-  React.useEffect(() => { 
-    Audio.requestPermissionsAsync() 
-    Audio.setAudioModeAsync({
-      shouldDuckAndroid: true,
-      staysActiveInBackground: true,
-      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-      playThroughEarpieceAndroid: false,
-      allowsRecordingIOS: false,
-      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      playsInSilentModeIOS: true,
-    });
-  }, [])
-
-  const onPlaybackStatusUpdate = React.useRef(async (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setPlayBackStatus(status)
-      if (status.didJustFinish) {
-        await handleNextMusic()
-      }
-    } else {
-      setPlayBackStatus(status => ({ ...status, isPlaying: false }))
-    }
-  }).current
-
-  function handlePlayOrStop() {
-    if (!sound) {
-      const source = data[index].source
-      if (source) {
-        changeSound(source)
-      }
-    } else {
-      playBackStatus.isPlaying ? stopSound() : playSound()
-    }
-  }
-
-  async function playSound() {
-    try {
-      await sound?.playAsync(); 
-    } catch(err) {
-      console.log(err);
-    }
-  }
-
-  async function changeSound(source: AVPlaybackSource) {
-    try {
-        const { sound, status } = await Audio.Sound.createAsync(source, { 
-            positionMillis: playBackStatus.positionMillis,
-            volume: playBackStatus.volume,
-            progressUpdateIntervalMillis: 50, 
-            shouldPlay: true
-          },
-          onPlaybackStatusUpdate
-        );
-
-        if (status.isLoaded) { setPlayBackStatus(status) }
-
-        setSound(sound);
-    } catch(err) {
-      console.log(err);
-    }
-  }
-
-  async function stopSound() {
-    try {
-      await sound?.stopAsync(); 
-      await sound?.setPositionAsync(playBackStatus.positionMillis); 
-    } catch(err) {
-      console.log(err);
-    }
-  }
-
-
-  async function handlePositionMillis(value: number) {
-    await sound?.setPositionAsync(value)
-  }
-
-  async function handleVolume(value: number) {
-    await sound?.setVolumeAsync(value)
-  }
-
-  React.useEffect(() => {
-    (async () => {
-      const source = data[index].source
-      console.log({ index });
-      await sound?.unloadAsync(); 
-      const status = await sound?.loadAsync(source)
-      if (status?.isLoaded) {
-        await playSound()
-      }
-    })()
+    const source = data[index].source
+    if (source) { loadAndPlay(source) }
   }, [index])
 
+  React.useEffect(() => {
+    if (playBackStatus.didJustFinish) {
+      handleNextMusic()
+    }
+  }, [playBackStatus])
+
   async function handleNextMusic() {
-    const limit = data.length -1;
-    setIndex(index => index < limit ? index+1 : 0)
+    setIndex(index => index < data.length -1 ? index+1 : 0)
   }
 
   async function handlePreviousMusic() {
     setIndex(index => index > 0 ? index-1 : 0)
   }
 
-  React.useEffect(() => {
-    return sound
-      ? () => {
-          console.log('Unloading Sound');
-          sound.unloadAsync().finally(() => {
-            setSound(undefined)
-          }); 
-      }
-      : undefined;
-  }, [sound]);
-
-  function fomatedTime(millis: number) {
-    if (!millis) return '0:00'
-    const minutes = Math.floor(millis / 60000);
-    const seconds = Number(((millis % 60000) / 1000).toFixed(0));
-    return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
-  }
-
   const imageW = width * .7;
   const imageH = imageW * 1;
 
   const top = useHeaderHeight()
-
-  function getDuration(i: number) {
-    if (index !== i) return 0
-    return playBackStatus.playableDurationMillis || 0
-  }
-
-  function getPostion(i: number, position: number = playBackStatus.positionMillis) {
-    if (index !== i) return 0
-    return position || 0
-  }
-
-  function getDisablePrevious(i: number) {
-    if (index !== i) return true
-    return index === 0
-  }
-
-  function getDisableNext(i: number) {
-    if (index !== i) return true
-    return index === data.length-1
-  }
   
   return (
     <View style={styles.container}>
@@ -216,52 +87,20 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
                 resizeMode: 'cover',
                 borderRadius: 16
               }}/>
-              <View style={{ alignItems: 'center', marginTop: 40, width: '100%',  }}>
-                {/* <Text>{`Volume: ${Math.floor(playBackStatus.volume*100)}`}</Text>
-                <Slider
-                  style={{width: 200, height: 40}}
-                  minimumValue={0}
-                  maximumValue={1}
-                  value={playBackStatus.volume}
-                  onValueChange={value => handleVolume(value)}
-                  minimumTrackTintColor="#FFFFFF"
-                  maximumTrackTintColor="#000000"
-                /> */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 }}>
-                  <Text style={styles.info}>{fomatedTime(getPostion(i))}</Text>
-                  <Text style={styles.info}>{fomatedTime(getDuration(i))}</Text>
-                </View>
-                <Slider 
-                  // thumbImage={undefined}
-                  // thumbTintColor='transparent'
-                  // trackImage={undefined}
-                  style={{width: '100%', height: 40 }}
-                  minimumValue={0}
-                  maximumValue={getDuration(i)}
-                  value={getPostion(i, position)}
-                  onSlidingComplete={(value) => handlePositionMillis(value)}
-                  minimumTrackTintColor="#FFFFFF"
-                  maximumTrackTintColor="#000000"
-                />
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '75%', marginTop: 20 }}>
-                  <TouchableOpacity disabled={getDisablePrevious(i)} onPress={() => handlePreviousMusic()}>
-                    <MaterialIcons style={[getDisablePrevious(i) && { opacity: .2 }]} size={24*2} color={'white'}
-                      name={'skip-previous'}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity disabled={index !== i} onPress={() => handlePlayOrStop()}>
-                    <MaterialIcons style={[index !== i && { opacity: .1 }]}  size={24*2.5} color={'white'}
-                      name={playBackStatus.isPlaying ? 'pause-circle-filled' : 'play-circle-fill'}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity disabled={getDisableNext(i)} onPress={() => handleNextMusic()}>
-                    <MaterialIcons style={[getDisableNext(i) && { opacity: .1 }]} size={24*2} color={'white'}
-                      name={'skip-next'}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <PlayingController loading={loading}
+                isPlaying={playBackStatus.isPlaying}
+                playingDisabled={index !== i}
+                changePlaying={() => handlePlayOrStop(item.source)}
+                durationMillis={index === i ? playBackStatus.durationMillis : 0}
+                positionMillis={index === i ? position : 0}
+                nextDisabled={index !== i ? true : index === data.length-1}
+                previousDisabled={index !== i ? true : index === 0}
+                onPrevious={() => handlePreviousMusic()}
+                onNext={() => handleNextMusic()}
+                onSlidingComplete={value => handlePositionMillis(value)}
+              />
+
             </View>
           </View>
         )}
@@ -272,80 +111,7 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
 
 
 
-interface MusicPlayListProps<ItemT = any> extends FlatListProps<ItemT> {
-  onChangeIndex: (index: number) => any
-  index: number
-}
 
-const MusicPlayList = React.forwardRef(({ onChangeIndex, index, ...props }: MusicPlayListProps, ref: React.ForwardedRef<FlatList>) => {
-  const flatListRef = React.useRef<FlatList>(null)
-
-  React.useEffect(() => {
-    flatListRef.current?.scrollToIndex({ index, animated: true })
-  }, [index])
-
-  const scrollX = React.useRef(new Animated.Value(0)).current
-
-  // const _onViewableItemsChanged = React.useRef(({ viewableItems, changed }: { viewableItems: ViewToken[], changed: ViewToken[], }) => {
-  //     console.log("Visible items are", viewableItems);
-  //     console.log("Changed in this iteration", changed);
-  //     onChangeIndex?.(changed?.[0]?.index || 0)
-  // }).current
-
-  // const _viewabilityConfig = { itemVisiblePercentThreshold: 50 }
-
-  const _onMomentumScrollEnd = React.useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    const roundIndex = Math.round(index);
-    onChangeIndex?.(roundIndex)
-    console.log("roundIndex:", roundIndex);
-  }, []);
-
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={[
-        StyleSheet.absoluteFillObject,
-      ]}>
-        {data.map(({ image }, index) => {
-          const inputRange = [
-            (index - 1) * width,
-            index * width,
-            (index + 1) * width
-          ]
-          const opacity = scrollX.interpolate({
-            inputRange, outputRange: [0, 1, 0],
-
-          })
-          return (
-            <Animated.Image key={`image-${image}`} source={{ uri: image }}
-              blurRadius={50}
-              style={[ 
-                StyleSheet.absoluteFillObject, { opacity }
-              ]}
-            />
-          )
-        })}
-      </View>
-      <Animated.FlatList ref={flatListRef} style={{ flex: 1 }} 
-        showsHorizontalScrollIndicator={false}
-        // onViewableItemsChanged={_onViewableItemsChanged}
-        // viewabilityConfig={_viewabilityConfig}
-        onScroll={Animated.event(
-          [{nativeEvent: { contentOffset: { x: scrollX } }}],
-          { useNativeDriver: true }
-        )}
-        onMomentumScrollEnd={_onMomentumScrollEnd}
-        keyExtractor={(_, index) => index.toString()}
-        horizontal
-        pagingEnabled
-        {...props}
-      />
-    </View>
-  )
-})
-
-// export default MusicPlayList;
 
 const styles = StyleSheet.create({
   container: {
