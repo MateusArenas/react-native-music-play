@@ -1,8 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TouchableOpacityProps, GestureResponderEvent } from 'react-native';
 import { fomatedTime } from '../helpers';
+
+import * as Animatable from 'react-native-animatable';
 
 
 interface PlayerControllerProps {
@@ -26,6 +28,7 @@ const PlayingController: React.FC<PlayerControllerProps> = ({
     playingDisabled, changePlaying,
     loading,
 }) => {
+
   return (
     <View style={{ alignItems: 'center', marginTop: 40, width: '100%',  }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 }}>
@@ -43,23 +46,41 @@ const PlayingController: React.FC<PlayerControllerProps> = ({
          />
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '75%', marginTop: 20 }}>
-        <TouchableOpacity disabled={previousDisabled || loading} onPress={() => onPrevious?.()}>
-            <MaterialIcons style={[(previousDisabled || loading) && { opacity: .2 }]} size={24*2} color={'white'}
-            name={'skip-previous'}
-            />
-        </TouchableOpacity>
-        <TouchableOpacity disabled={playingDisabled || loading} onPress={() => changePlaying?.(!isPlaying)}>
-            <MaterialIcons style={[(playingDisabled || loading) && { opacity: .1 }]}  size={24*2.5} color={'white'}
-            name={isPlaying ? 'pause-circle-filled' : 'play-circle-fill'}
-            />
-        </TouchableOpacity>
-        <TouchableOpacity disabled={nextDisabled || loading} onPress={() => onNext?.()}>
-            <MaterialIcons style={[(nextDisabled || loading) && { opacity: .1 }]} size={24*2} color={'white'}
-            name={'skip-next'}
-            />
-        </TouchableOpacity>
+          <ButtonController disabled={previousDisabled} onPress={() => onPrevious?.()} 
+              name={'skip-previous'}
+          />
+          <ButtonController disabled={playingDisabled} onPress={() => changePlaying?.(!isPlaying)}
+              name={isPlaying ? 'pause-circle-filled' : 'play-circle-fill'}
+          />
+          <ButtonController disabled={nextDisabled} onPress={() => onNext?.()} 
+              name={'skip-next'}
+          />
         </View>
     </View>
+  )
+}
+
+interface ButtonControllerProps extends TouchableOpacityProps {
+  name: React.ComponentProps<typeof MaterialIcons>['name'];
+}
+
+const ButtonController: React.FC<ButtonControllerProps> = ({ name, ...props }) => {
+  const playingButtonRef = React.useRef<Animatable.View>(null)
+
+
+  async function onPress (event: GestureResponderEvent) {
+    playingButtonRef.current?.pulse?.(400)
+    props?.onPress?.(event)
+  }
+
+  return (
+    <Animatable.View ref={playingButtonRef} >
+      <TouchableOpacity {...props} onPress={onPress} >
+          <MaterialIcons style={[(props.disabled) && { opacity: .1 }]}  size={24*2.5} color={'white'}
+            name={name}
+          />
+      </TouchableOpacity>
+    </Animatable.View>
   )
 }
 
