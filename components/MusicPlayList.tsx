@@ -29,6 +29,7 @@ const MusicPlayList = React.forwardRef(({ onChangeIndex, index, ...props }: Musi
       <View style={{ flex: 1 }}>
         <View style={[
           StyleSheet.absoluteFillObject,
+          { backgroundColor: 'black' }
         ]}>
           {props.data?.map?.(({ image }, index) => {
             const inputRange = [
