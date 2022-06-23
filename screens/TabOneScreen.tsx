@@ -175,12 +175,32 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
   const imageH = imageW * 1;
 
   const top = useHeaderHeight()
+
+  function getDuration(i: number) {
+    if (index !== i) return 0
+    return playBackStatus.playableDurationMillis || 0
+  }
+
+  function getPostion(i: number, position: number = playBackStatus.positionMillis) {
+    if (index !== i) return 0
+    return position || 0
+  }
+
+  function getDisablePrevious(i: number) {
+    if (index !== i) return true
+    return index === 0
+  }
+
+  function getDisableNext(i: number) {
+    if (index !== i) return true
+    return index === data.length-1
+  }
   
   return (
     <View style={styles.container}>
       <MusicPlayList index={index} onChangeIndex={index => setIndex(index)}
         data={data}
-        renderItem={({ item }) => (
+        renderItem={({ item, index: i }) => (
           <View style={{ width, flex: 1, paddingHorizontal: 20, paddingTop: top }}>
             <View style={{ marginBottom: 40 }}>
               <Text style={styles.title}>{data[index].title}</Text>
@@ -208,8 +228,8 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
                   maximumTrackTintColor="#000000"
                 /> */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 }}>
-                  <Text style={styles.info}>{fomatedTime(playBackStatus.positionMillis)}</Text>
-                  <Text style={styles.info}>{fomatedTime(playBackStatus.playableDurationMillis || 0)}</Text>
+                  <Text style={styles.info}>{fomatedTime(getPostion(i))}</Text>
+                  <Text style={styles.info}>{fomatedTime(getDuration(i))}</Text>
                 </View>
                 <Slider 
                   // thumbImage={undefined}
@@ -217,26 +237,26 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
                   // trackImage={undefined}
                   style={{width: '100%', height: 40 }}
                   minimumValue={0}
-                  maximumValue={playBackStatus.playableDurationMillis}
-                  value={position}
+                  maximumValue={getDuration(i)}
+                  value={getPostion(i, position)}
                   onSlidingComplete={(value) => handlePositionMillis(value)}
                   minimumTrackTintColor="#FFFFFF"
                   maximumTrackTintColor="#000000"
                 />
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '75%', marginTop: 20 }}>
-                  <TouchableOpacity disabled={index === 0} onPress={() => handlePreviousMusic()}>
-                    <MaterialIcons style={[index === 0 && { opacity: .2 }]} size={24*2} color={'white'}
+                  <TouchableOpacity disabled={getDisablePrevious(i)} onPress={() => handlePreviousMusic()}>
+                    <MaterialIcons style={[getDisablePrevious(i) && { opacity: .2 }]} size={24*2} color={'white'}
                       name={'skip-previous'}
                     />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handlePlayOrStop()}>
-                    <MaterialIcons size={24*2.5} color={'white'}
+                  <TouchableOpacity disabled={index !== i} onPress={() => handlePlayOrStop()}>
+                    <MaterialIcons style={[index !== i && { opacity: .1 }]}  size={24*2.5} color={'white'}
                       name={playBackStatus.isPlaying ? 'pause-circle-filled' : 'play-circle-fill'}
                     />
                   </TouchableOpacity>
-                  <TouchableOpacity disabled={index === data.length-1} onPress={() => handleNextMusic()}>
-                    <MaterialIcons style={[index === data.length-1 && { opacity: .1 }]} size={24*2} color={'white'}
+                  <TouchableOpacity disabled={getDisableNext(i)} onPress={() => handleNextMusic()}>
+                    <MaterialIcons style={[getDisableNext(i) && { opacity: .1 }]} size={24*2} color={'white'}
                       name={'skip-next'}
                     />
                   </TouchableOpacity>
