@@ -112,6 +112,7 @@ export const PlayerProvider: React.FC = ({ children }) => {
       async function stopSound() {
         try {
           setLoading(true)
+          setPosition(playBackStatus.positionMillis)
           await sound?.stopAsync(); 
           const status = await sound?.setPositionAsync(playBackStatus.positionMillis); 
           if (status?.isLoaded) {

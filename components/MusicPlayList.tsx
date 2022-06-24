@@ -38,7 +38,7 @@ const MusicPlayList = React.forwardRef(({ onChangeIndex, index, ...props }: Musi
               (index + 1) * width
             ]
             const opacity = scrollX.interpolate({
-              inputRange, outputRange: [0, 1, 0],
+              inputRange, outputRange: [0, .5, 0],
   
             })
             return (

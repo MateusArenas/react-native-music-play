@@ -28,6 +28,24 @@ const data = [
     image: 'https://cdn.dribbble.com/users/3281732/screenshots/13130602/media/592ccac0a949b39f058a297fd1faa38e.jpg?compress=1&resize=1200x1200',
     source: require('../assets/Music2.mp3')
   },
+  { 
+    title: 'Escapism',
+    subtitle: 'Yung Logos',
+    image: 'https://cdn.dribbble.com/users/3281732/screenshots/9165292/media/ccbfbce040e1941972dbc6a378c35e98.jpg?compress=1&resize=1200x1200',
+    source: require('../assets/Music3.mp3')
+  },
+  { 
+    title: 'Down With Your Getup',
+    subtitle: 'Mini Vandals',
+    image: 'https://cdn.dribbble.com/users/3281732/screenshots/11205211/media/44c854b0a6e381340fbefe276e03e8e4.jpg?compress=1&resize=1200x1200',
+    source: require('../assets/Music4.mp3')
+  },
+  { 
+    title: 'Statement',
+    subtitle: 'NEFFEX',
+    image: 'https://cdn.dribbble.com/users/3281732/screenshots/7003560/media/48d5ac3503d204751a2890ba82cc42ad.jpg?compress=1&resize=1200x1200',
+    source: require('../assets/Music5.mp3')
+  },
   // 'https://cdn.dribbble.com/users/3281732/screenshots/11192830/media/7690704fa8f0566d572a085637dd1eee.jpg?compress=1&resize=1200x1200',
   // 'https://cdn.dribbble.com/users/3281732/screenshots/13130602/media/592ccac0a949b39f058a297fd1faa38e.jpg?compress=1&resize=1200x1200',
   // 'https://cdn.dribbble.com/users/3281732/screenshots/9165292/media/ccbfbce040e1941972dbc6a378c35e98.jpg?compress=1&resize=1200x1200',
@@ -40,6 +58,9 @@ const data = [
 
 export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'>) {
   const [index, setIndex] = React.useState(0)
+
+  const [repeat, setRepeat] = React.useState(false)
+  const [shuffle, setShuffle] = React.useState(false)
 
   const { sound, position, playBackStatus, handlePlayOrStop, handlePositionMillis, loadAndPlay, loading } = React.useContext(PlayerContext)
 
@@ -55,11 +76,12 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
   }, [playBackStatus])
 
   async function handleNextMusic() {
-    setIndex(index => index < data.length -1 ? index+1 : 0)
+    const random = Math.floor(Math.random() * ((data.length -1) - 0 + 1)) + 0;
+    setIndex(index => index < data.length -1 ? shuffle ? random : index+1 : repeat ? 0 : index)
   }
 
   async function handlePreviousMusic() {
-    setIndex(index => index > 0 ? index-1 : 0)
+    setIndex(index => index > 0 ? index-1 : repeat ? data.length -1 : index)
   }
 
   const imageW = width * .7;
@@ -74,7 +96,7 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
         renderItem={({ item, index: i }) => (
           <View style={{ width, flex: 1, paddingHorizontal: 20, paddingTop: top }}>
             <View style={{ marginBottom: 40 }}>
-              <Text style={styles.title}>{data[index].title}</Text>
+              <Text numberOfLines={1} style={styles.title}>{data[index].title}</Text>
               <Text style={styles.subtitle}>{data[index].subtitle}</Text>
             </View>
             <View style={[
@@ -89,13 +111,15 @@ export default function TabOneScreen({ navigation }: RootTabScreenProps<'TabOne'
               }}/>
 
               <PlayingController loading={loading}
+                isRepeat={repeat} changeRepeat={repeat => setRepeat(repeat)}
+                isShuffle={shuffle} changeShuffle={shuffle => setShuffle(shuffle)}
                 isPlaying={playBackStatus.isPlaying}
                 playingDisabled={index !== i}
                 changePlaying={() => handlePlayOrStop(item.source)}
                 durationMillis={index === i ? playBackStatus.durationMillis : 0}
                 positionMillis={index === i ? position : 0}
-                nextDisabled={index !== i ? true : index === data.length-1}
-                previousDisabled={index !== i ? true : index === 0}
+                nextDisabled={index !== i ? true : repeat ? false : index === data.length-1}
+                previousDisabled={index !== i ? true : repeat ? false : index === 0}
                 onPrevious={() => handlePreviousMusic()}
                 onNext={() => handleNextMusic()}
                 onSlidingComplete={value => handlePositionMillis(value)}
