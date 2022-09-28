@@ -5,7 +5,7 @@
  */
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ColorSchemeName, Pressable } from 'react-native';
@@ -62,7 +62,7 @@ function BottomTabNavigator() {
 
   return (
     <BottomTab.Navigator
-      initialRouteName="TabOne"
+      initialRouteName="TabTwo"
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
         headerTransparent: true,
@@ -99,7 +99,7 @@ function BottomTabNavigator() {
         component={TabTwoScreen}
         options={{
           title: 'Tab Two',
-          tabBarStyle: {display: 'flex'},
+          tabBarStyle: { display: 'none',  },
           tabBarLabel: () => null,
           tabBarIcon: ({ color }) => <TabBarIcon name="more-horiz" color={color} />,
         }}
