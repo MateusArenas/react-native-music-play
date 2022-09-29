@@ -10,6 +10,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ColorSchemeName, Pressable } from 'react-native';
 
+import ChatBotScreen from '../components/chatbot.screen';
 import Colors from '../constants/Colors';
 import { PlayerProvider } from '../contexts/player';
 import useColorScheme from '../hooks/useColorScheme';
@@ -96,7 +97,7 @@ function BottomTabNavigator() {
       />
       <BottomTab.Screen
         name="TabTwo"
-        component={TabTwoScreen}
+        component={ChatBotScreen}
         options={{
           title: 'Tab Two',
           tabBarStyle: { display: 'none',  },
